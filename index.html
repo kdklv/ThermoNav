@@ -2,176 +2,62 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ThermoNav - Temperature-based Navigation</title>
-    
-    <!-- External CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance Tracker</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    
-    <!-- Configuration -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Load configuration first -->
+    <script src="config.js"></script>
     <script>
-      // Google Maps API Configuration
-      window.GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLEMAPS_API';
-      
       function initMap() {
         if (typeof google === "undefined") {
-          const errorMsg = "Error: Google Maps API failed to load. Please check your API key and enabled services.";
-          document.getElementById("errorMessage").textContent = errorMsg;
+          document.getElementById("errorMessage").textContent =
+            "Error: Google Maps API failed to load. Please check your API key and enabled services.";
           document.getElementById("errorMessage").classList.remove("hidden");
           return;
         }
+        // Initialize app only after Maps API is loaded
         window.initApp();
       }
+
+      // Dynamically load Google Maps API with configuration
+      function loadGoogleMapsAPI() {
+        const script = document.createElement('script');
+        const libraries = window.appConfig.googleMaps.libraries.join(',');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${window.appConfig.googleMaps.apiKey}&libraries=${libraries}&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
     </script>
-    
-    <style>
-      body {
-        transition: all 1s ease;
-        min-height: 100vh;
-        margin: 0;
-        position: relative;
-        overflow: hidden;
-        background-color: #f0f0f0;
-      }
-
-      .section {
-        padding: 2rem 1rem;
-        min-height: calc(100vh - 4rem);
-        display: flex;
-        align-items: center;
-      }
-      
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-      }
-
-      #app-container {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 25px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-      }
-
-      /* Temperature Effects */
-      body::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: -1;
-        opacity: 0;
-        transition: opacity 1s ease;
-      }
-
-      body.cold-bg { background-color: #e3f2fd; }
-      body.warm-bg { background-color: #fff3e0; }
-
-      .cold-bg::before,
-      .warm-bg::before {
-        opacity: 0.7;
-        display: none;
-      }
-
-      /* UI Elements */
-      .title-bar { margin-bottom: 1.5rem; }
-      
-      .input, 
-      .button { border-radius: 25px; }
-
-      #startTracking {
-        transition: all 0.2s ease;
-        background-color: #f5f5f5;
-        color: #363636;
-        width: 100%;
-        text-align: center;
-        justify-content: center;
-        margin: 1rem 0;
-        padding: 1.5rem;
-        font-size: 1.2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        border: 1px solid #ddd;
-      }
-
-      #startTracking:hover { transform: scale(1.02); }
-      #startTracking:active { background-color: #ddd; }
-
-      /* Utility Classes */
-      .hidden { display: none !important; }
-      
-      #errorMessage {
-        margin-top: 1rem;
-        display: none;
-        border-radius: 25px;
-      }
-
-      #errorMessage:not(.hidden) { display: block; }
-
-      /* Animations */
-      .notification {
-        animation: fadeIn 0.3s ease forwards;
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      /* Google Places Autocomplete */
-      .pac-container {
-        z-index: 2000 !important;
-        border-radius: 25px;
-      }
-    </style>
-
-    <!-- Application Scripts -->
     <script src="app.js"></script>
-    <script 
-      src="https://maps.googleapis.com/maps/api/js?key=" + window.GOOGLE_MAPS_API_KEY + "&libraries=places,geometry,marker&callback=initMap"
-      async 
-      defer
-    ></script>
   </head>
-  <body>
-    <section class="section">
-      <div class="container">
+  <body onload="loadGoogleMapsAPI()">
+    <div class="section">
+      <div class="app-wrapper">
         <div id="app-container">
           <div class="title-bar">
-            <div class="title is-4 has-text-centered">ThermoNav</div>
-            <div class="subtitle is-6 has-text-centered">Temperature-based Navigation</div>
+            <div class="title is-4 has-text-centered">🔥 / ❄️ Nav</div>
           </div>
-          
           <div class="field">
-            <label class="label" for="destination">Where do you want to go?</label>
+            <label class="label" for="destination">Destination</label>
             <div class="control">
-              <input 
-                class="input" 
-                type="text" 
-                id="destination" 
-                placeholder="Enter a destination..."
-              />
+              <input class="input" type="text" id="destination" placeholder="Type a location..."/>
             </div>
           </div>
-          
           <div class="field">
             <div class="control" style="width: 100%;">
-              <button class="button is-primary is-fullwidth" id="startTracking">
-                Start Tracking
-              </button>
+              <button class="button is-primary is-fullwidth" id="startTracking">Start Tracking</button>
             </div>
           </div>
-          
-          <div id="distanceDisplay" class="has-text-weight-bold has-text-centered hidden">
-            Current Distance: <span id="distance">0</span><span class="unit">m</span>
+          <div id="distanceDisplay" class="has-text-weight-bold hidden">
+            Current Distance:
+            <span id="distance">0</span>
+            <span class="unit">m</span>
           </div>
-          
           <div id="errorMessage" class="notification is-danger is-light hidden"></div>
         </div>
       </div>
-    </section>
+    </div>
   </body>
 </html>

@@ -1,22 +1,18 @@
-// Configuration and Constants
-const CONFIG = {
-  MAX_RETRIES: 5,
-  RETRY_DELAY: 2000,
-  LOCATION_TIMEOUT: 10000,
-  ANIMATION_DURATION: 800
-};
-
-// State Management
+// State management
 const state = {
   destination: null,
   watchId: null,
   previousDistance: null,
   locationInitialized: false,
   initRetries: 0,
-  apiKey: window.GOOGLE_MAPS_API_KEY
+  MAX_RETRIES: window.appConfig.location.maxRetries,
+  RETRY_DELAY: window.appConfig.location.retryDelay,
+  LOCATION_TIMEOUT: window.appConfig.location.timeout,
+  lastUpdateTime: null,
+  colorResetTimeout: null
 };
 
-// DOM Elements Cache
+// DOM Elements cache
 const elements = {
   destination: null,
   startButton: null,
@@ -24,54 +20,85 @@ const elements = {
   errorMessage: null
 };
 
-// UI Management
+// UI Update functions
 const ui = {
   showError: (message) => {
-    if (!elements.errorMessage) return;
-    elements.errorMessage.textContent = message;
-    elements.errorMessage.classList.toggle("hidden", !message);
+    if (elements.errorMessage) {
+      elements.errorMessage.textContent = message;
+      elements.errorMessage.classList.toggle("hidden", !message);
+    }
   },
 
   updateDistance: (distance) => {
-    if (!elements.startButton) return;
-    animateNumber(
-      elements.startButton,
-      parseInt(elements.startButton.textContent) || 0,
-      Math.round(distance),
-      CONFIG.ANIMATION_DURATION
-    );
+    if (elements.startButton) {
+      animateNumber(elements.startButton, 
+        parseInt(elements.startButton.textContent) || 0, 
+        Math.round(distance), 
+        800);
+    }
   },
 
   setTrackingMode: (isTracking) => {
-    const { startButton: button, destination } = elements;
-    if (!button || !destination) return;
+    const button = elements.startButton;
+    if (!button) return;
 
     if (isTracking) {
       button.textContent = "0 meters";
       button.onclick = stopTracking;
-      destination.style.display = 'none';
+      elements.destination.style.display = 'none';
       document.querySelector('label').style.display = 'none';
     } else {
       button.textContent = "Start Tracking";
       button.onclick = startTracking;
-      destination.style.display = 'block';
+      elements.destination.style.display = 'block';
       document.querySelector('label').style.display = 'block';
-      resetVisualEffects();
+      // Reset all visual effects
+      document.body.className = '';
+      button.style = '';
+      button.className = 'button is-primary';
     }
+  },
+
+  resetColors: () => {
+    document.body.className = '';
+    elements.startButton.className = 'button is-primary';
   },
 
   updateTemperatureEffects: (newDistance) => {
     if (!state.previousDistance) {
-      resetVisualEffects();
+      ui.resetColors();
       return;
     }
 
     const distanceChange = newDistance - state.previousDistance;
-    updateVisualEffects(distanceChange);
+    const body = document.body;
+    const button = elements.startButton;
+
+    // Clear any existing timeout
+    if (state.colorResetTimeout) {
+      clearTimeout(state.colorResetTimeout);
+    }
+
+    // Remove all temperature classes first
+    body.classList.remove('cold-bg', 'warm-bg');
+    button.classList.remove('warm', 'cold');
+
+    if (distanceChange < 0) { // Getting closer
+      body.classList.add('warm-bg');
+      button.classList.add('warm');
+    } else { // Getting further
+      body.classList.add('cold-bg');
+      button.classList.add('cold');
+    }
+
+    // Set new timeout to reset colors after 10 seconds
+    state.colorResetTimeout = setTimeout(() => {
+      ui.resetColors();
+    }, 10000);
   }
 };
 
-// Core Location Functions
+// Core logic functions
 function calculateDistance(position) {
   if (!state.destination || !google.maps.geometry) return null;
 
@@ -92,11 +119,7 @@ function startTracking() {
   state.watchId = navigator.geolocation.watchPosition(
     handlePositionUpdate,
     handleGeolocationError,
-    { 
-      enableHighAccuracy: true, 
-      timeout: CONFIG.LOCATION_TIMEOUT, 
-      maximumAge: 0 
-    }
+    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
   );
 
   ui.setTrackingMode(true);
@@ -111,7 +134,7 @@ function stopTracking() {
   }
 }
 
-// Event Handlers
+// Event handlers
 function handlePositionUpdate(position) {
   try {
     const distance = calculateDistance(position);
@@ -121,64 +144,17 @@ function handlePositionUpdate(position) {
       state.previousDistance = distance;
     }
   } catch (error) {
-    ui.showError(`Error calculating distance: ${error.message}`);
+    ui.showError("Error calculating distance: " + error.message);
   }
 }
 
-function handleGeolocationError(error) {
-  const errorMessages = {
-    1: "Location permission denied. Please enable location services.",
-    2: "Location information unavailable.",
-    3: "Location request timed out.",
-    default: "An error occurred while getting your location."
-  };
-
-  ui.showError(errorMessages[error.code] || errorMessages.default);
-}
-
-// Helper Functions
-function resetVisualEffects() {
-  document.body.className = '';
-  if (elements.startButton) {
-    elements.startButton.style = '';
-    elements.startButton.className = 'button is-primary';
-  }
-}
-
-function updateVisualEffects(distanceChange) {
-  const button = elements.startButton;
-  if (!button) return;
-
-  button.style.backgroundColor = distanceChange < 0 ? '#ff6b6b' : '#63a4ff';
-  button.style.borderColor = distanceChange < 0 ? '#ff5252' : '#1976d2';
-  button.style.color = 'white';
-}
-
-function animateNumber(element, start, end, duration) {
-  const startTime = performance.now();
-  const difference = end - start;
-  
-  function update(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const easing = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-    const current = Math.round(start + (difference * easing));
-    
-    element.textContent = `${current} m`;
-    
-    if (progress < 1) {
-      requestAnimationFrame(update);
-    }
-  }
-  
-  requestAnimationFrame(update);
-}
-
-// Initialization
+// Initialize application
 function initApp() {
   try {
     cacheElements();
     initAutocomplete();
+    
+    // Show loading state
     ui.showError("Initializing location services...");
     
     initializeLocationServices()
@@ -191,12 +167,9 @@ function initApp() {
         ui.showError("Location services unavailable. Please check your device settings and try again.");
       });
   } catch (error) {
-    ui.showError(`Error initializing application: ${error.message}`);
+    ui.showError("Error initializing application: " + error.message);
   }
 }
-
-// Make initApp available globally
-window.initApp = initApp;
 
 // Update the setupEventListeners function to handle all event bindings in one place
 function setupEventListeners() {
@@ -236,6 +209,28 @@ let colorUpdateTimeout = null;
 
 // DOM Elements
 let distanceElement;
+
+function animateNumber(element, start, end, duration = 1000) {
+  const startTime = performance.now();
+  const difference = end - start;
+  
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Easing function for smooth animation
+    const easing = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = Math.round(start + (difference * easing));
+    
+    element.textContent = `${current} m`;
+    
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    }
+  }
+  
+  requestAnimationFrame(update);
+}
 
 // Initialize Google Maps Autocomplete
 function initAutocomplete() {
@@ -299,6 +294,25 @@ function validateTrackingPrerequisites() {
   }
 
   return true;
+}
+
+// Handle geolocation errors
+function handleGeolocationError(error) {
+  let message = "An error occurred while getting your location.";
+
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      message = "Location permission denied. Please enable location services.";
+      break;
+    case error.POSITION_UNAVAILABLE:
+      message = "Location information unavailable.";
+      break;
+    case error.TIMEOUT:
+      message = "Location request timed out.";
+      break;
+  }
+
+  ui.showError(message);
 }
 
 // Add PAC container positioning code from the old inline script

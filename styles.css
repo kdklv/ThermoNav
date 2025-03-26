@@ -1,0 +1,205 @@
+/* CSS Custom Properties */
+:root {
+    --primary-radius: 25px;
+    --primary-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+    --warm-bg: #fff3e0;
+    --cold-bg: #e3f2fd;
+    --warm-button: #ff6b6b;
+    --cold-button: #63a4ff;
+    --warm-border: #ff5252;
+    --cold-border: #1976d2;
+    --primary-padding: 2rem;
+    --mobile-padding: 1rem;
+    --container-width: 800px;
+    --mobile-container-width: 600px;
+    --min-container-width: 280px;
+    --max-container-width: 500px;
+    --container-padding: 1rem;
+}
+
+/* 1. Reset & Base Styles */
+body {
+    min-height: 100vh;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    background-color: #f0f0f0;
+    transition: background-color var(--transition-speed) ease;
+}
+
+/* 2. Layout & Container Styles */
+.section {
+    padding: var(--primary-padding);
+    min-height: calc(100vh - 4rem);
+    display: flex;
+    align-items: center;
+}
+
+.container {
+    max-width: var(--container-width) !important;
+    margin: 0 auto;
+}
+
+#app-container {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: var(--primary-radius);
+    padding: var(--primary-padding);
+    box-shadow: var(--primary-shadow);
+    transition: all var(--transition-speed) ease;
+    width: 100%;
+}
+
+/* Ensure container stays at max-width even at larger breakpoints */
+@media screen and (min-width: 1024px) {
+    .container {
+        max-width: var(--container-width) !important;
+    }
+}
+
+@media screen and (min-width: 1216px) {
+    .container {
+        max-width: var(--container-width) !important;
+    }
+}
+
+@media screen and (min-width: 1408px) {
+    .container {
+        max-width: var(--container-width) !important;
+    }
+}
+
+/* 3. Component Styles */
+.title-bar {
+    margin-bottom: 1.5rem;
+}
+
+.input, 
+.button {
+    border-radius: var(--primary-radius);
+}
+
+#startTracking {
+    transition: all var(--transition-speed) ease;
+    background-color: #f5f5f5;
+    color: #363636;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    margin: 1rem 0;
+    padding: 1.5rem;
+    font-size: 1.2rem;
+    box-shadow: var(--primary-shadow);
+    border: 1px solid #ddd;
+}
+
+/* 4. State & Theme Styles */
+body.warm-bg {
+    background-color: var(--warm-bg) !important;
+}
+
+body.cold-bg {
+    background-color: var(--cold-bg) !important;
+}
+
+#startTracking.warm {
+    background-color: var(--warm-button) !important;
+    border-color: var(--warm-border) !important;
+    color: white !important;
+}
+
+#startTracking.cold {
+    background-color: var(--cold-button) !important;
+    border-color: var(--cold-border) !important;
+    color: white !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 5. Animations */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.notification {
+    animation: fadeIn 0.3s ease forwards;
+    border-radius: var(--primary-radius);
+}
+
+/* 6. Interactive States */
+#startTracking:hover {
+    transform: scale(1.02);
+}
+
+#startTracking:active {
+    background-color: #ddd;
+}
+
+/* 7. Third-party Overrides */
+.pac-container {
+    z-index: 2000 !important;
+    border-radius: var(--primary-radius);
+}
+
+/* 8. Media Queries */
+@media screen and (max-width: 768px) {
+    .section {
+        padding: var(--mobile-padding);
+    }
+    
+    #app-container {
+        padding: var(--mobile-padding);
+        margin: 0.5rem;
+    }
+
+    #startTracking {
+        padding: var(--mobile-padding);
+        font-size: 1rem;
+    }
+}
+
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .section {
+        min-height: auto;
+        padding: var(--mobile-padding);
+    }
+
+    #app-container {
+        max-width: var(--mobile-container-width);
+    }
+}
+
+.app-wrapper {
+    width: 95%;
+    min-width: var(--min-container-width);
+    max-width: var(--max-container-width);
+    margin: 0 auto;
+    padding: 0 var(--container-padding);
+}
+
+@media screen and (max-width: 480px) {
+    .app-wrapper {
+        width: 100%;
+        padding: 0 0.5rem;
+    }
+
+    #app-container {
+        padding: 1rem;
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    .app-wrapper {
+        max-width: 600px;
+    }
+} 
